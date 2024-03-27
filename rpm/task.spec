@@ -1,6 +1,6 @@
 Name:           task
 Version:        3.0.0
-Release:        1
+Release:        2
 Summary:        Taskwarrior - a command-line TODO list manager
 License:        MIT
 URL:            https://taskwarrior.org
@@ -13,7 +13,9 @@ BuildRequires:  cargo >= 1.70
 BuildRequires:  rust-std-static
 
 BuildRequires:  libuuid-devel
-#BuildRequires:  gnutls-devel
+
+Provides:       taskwarrior
+Conflicts:      taskwarrior
 
 %description
 Taskwarrior is a command-line TODO list manager. It is flexible, fast,
