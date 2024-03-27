@@ -22,7 +22,7 @@ impl PassByValue for libc::time_t {
 
     unsafe fn from_ctype(self) -> Option<DateTime<Utc>> {
         if self != 0 {
-            return Some(utc_timestamp(self));
+            return Some(utc_timestamp(self.into()));
         }
         None
     }
