@@ -119,7 +119,7 @@ rm -vrf %{buildroot}%{_datadir}/doc/%{name}/
 
 %files
 %license LICENSE
-%doc NEWS doc/ref/%{name}-ref.pdf
+%doc doc/ref/%{name}-ref.pdf
 %doc scripts/vim/ scripts/hooks/
 %{_bindir}/%{name}
 # We don't want to have refresh script there
