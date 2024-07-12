@@ -1,6 +1,6 @@
 Name:           task
-Version:        3.0.0
-Release:        2
+Version:        3.0.2
+Release:        1
 Summary:        Taskwarrior - a command-line TODO list manager
 License:        MIT
 URL:            https://taskwarrior.org
