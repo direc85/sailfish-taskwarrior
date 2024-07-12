@@ -1,4 +1,3 @@
-#!/bin/sh
 
 # The on-exit event is triggered once, after all processing is complete.
 # This hook script has no effect on processing.

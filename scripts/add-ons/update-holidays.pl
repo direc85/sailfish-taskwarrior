@@ -1,4 +1,3 @@
-#! /usr/bin/perl
 ################################################################################
 ##
 ## Copyright 2006 - 2021, Tomas Babej, Paul Beckingham, Federico Hernandez.
