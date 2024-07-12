@@ -29,6 +29,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <vector>
 #include <list>
 #include <unordered_set>
 #include <stdlib.h>
@@ -57,6 +58,14 @@ TDB2::TDB2 ()
 ////////////////////////////////////////////////////////////////////////////////
 void TDB2::open_replica (const std::string& location, bool create_if_missing)
 {
+  File pending_data = File (location + "/pending.data");
+  if (pending_data.exists()) {
+    Color warning = Color (Context::getContext ().config.get ("color.warning"));
+    std::cerr << warning.colorize (
+      format ("Found existing '.data' files in {1}", location)) << "\n";
+    std::cerr << "  Taskwarrior's storage format changed in 3.0, requiring a manual migration.\n";
+    std::cerr << "  See https://github.com/GothenburgBitFactory/taskwarrior/releases.\n";
+  }
   replica = tc::Replica(location, create_if_missing);
 }
 
@@ -70,6 +79,8 @@ void TDB2::add (Task& task)
   task.validate (true);
 
   std::string uuid = task.get ("uuid");
+  changes[uuid] = task;
+
   auto innertask = replica.import_task_with_uuid (uuid);
 
   {
@@ -79,7 +90,7 @@ void TDB2::add (Task& task)
     for (auto& attr : task.all ()) {
       // TaskChampion does not store uuid or id in the taskmap
       if (attr == "uuid" || attr == "id") {
-        continue; 
+        continue;
       }
 
       // Use `set_status` for the task status, to get expected behavior
@@ -110,12 +121,13 @@ void TDB2::add (Task& task)
   // update the cached working set with the new information
   _working_set = std::make_optional (std::move (ws));
 
-  if (id.has_value ()) {
-    task.id = id.value();
-  }
-
   // run hooks for this new task
   Context::getContext ().hooks.onAdd (task);
+
+  if (id.has_value ()) {
+      task.id = id.value();
+  }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -140,6 +152,8 @@ void TDB2::modify (Task& task)
   task.setAsNow ("modified");
   task.validate (false);
   auto uuid = task.get ("uuid");
+
+  changes[uuid] = task;
 
 	// invoke the hook and allow it to modify the task before updating
   Task original;
@@ -200,9 +214,10 @@ const tc::WorkingSet &TDB2::working_set ()
 ////////////////////////////////////////////////////////////////////////////////
 void TDB2::get_changes (std::vector <Task>& changes)
 {
-  // TODO: changes in an invocation of `task` are not currently tracked, so this
-  // list is always empty.
+  std::map<std::string, Task>& changes_map = this->changes;
   changes.clear();
+  std::transform(changes_map.begin(), changes_map.end(), std::back_inserter(changes),
+                 [](const auto& kv) { return kv.second; });
 }
 
 ////////////////////////////////////////////////////////////////////////////////

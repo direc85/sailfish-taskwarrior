@@ -4,6 +4,7 @@ use crate::server::{
     VersionId,
 };
 use std::time::Duration;
+use url::Url;
 use uuid::Uuid;
 
 use super::encryption::{Cryptor, Sealed, Secret, Unsealed};
@@ -28,8 +29,16 @@ impl SyncServer {
     /// identify this client to the server.  Multiple replicas synchronizing the same task history
     /// should use the same client_id.
     pub fn new(origin: String, client_id: Uuid, encryption_secret: Vec<u8>) -> Result<SyncServer> {
+        let origin = Url::parse(&origin)
+            .map_err(|_| Error::Server(format!("Could not parse {} as a URL", origin)))?;
+        if origin.path() != "/" {
+            return Err(Error::Server(format!(
+                "Server origin must have an empty path; got {}",
+                origin
+            )));
+        }
         Ok(SyncServer {
-            origin,
+            origin: origin.to_string(),
             client_id,
             cryptor: Cryptor::new(client_id, &Secret(encryption_secret.to_vec()))?,
             agent: ureq::AgentBuilder::new()
@@ -85,10 +94,7 @@ impl Server for SyncServer {
         parent_version_id: VersionId,
         history_segment: HistorySegment,
     ) -> Result<(AddVersionResult, SnapshotUrgency)> {
-        let url = format!(
-            "{}/v1/client/add-version/{}",
-            self.origin, parent_version_id
-        );
+        let url = format!("{}v1/client/add-version/{}", self.origin, parent_version_id);
         let unsealed = Unsealed {
             version_id: parent_version_id,
             payload: history_segment,
@@ -121,7 +127,7 @@ impl Server for SyncServer {
 
     fn get_child_version(&mut self, parent_version_id: VersionId) -> Result<GetVersionResult> {
         let url = format!(
-            "{}/v1/client/get-child-version/{}",
+            "{}v1/client/get-child-version/{}",
             self.origin, parent_version_id
         );
         match self
@@ -150,7 +156,7 @@ impl Server for SyncServer {
     }
 
     fn add_snapshot(&mut self, version_id: VersionId, snapshot: Snapshot) -> Result<()> {
-        let url = format!("{}/v1/client/add-snapshot/{}", self.origin, version_id);
+        let url = format!("{}v1/client/add-snapshot/{}", self.origin, version_id);
         let unsealed = Unsealed {
             version_id,
             payload: snapshot,
@@ -166,7 +172,7 @@ impl Server for SyncServer {
     }
 
     fn get_snapshot(&mut self) -> Result<Option<(VersionId, Snapshot)>> {
-        let url = format!("{}/v1/client/snapshot", self.origin);
+        let url = format!("{}v1/client/snapshot", self.origin);
         match self
             .agent
             .get(&url)
